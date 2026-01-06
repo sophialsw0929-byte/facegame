@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CVI 正向互動訓練 V6.3 (SVG終極版)</title>
+    <style>
+        /* --- 1. 基礎設定 --- */
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            font-family: "Microsoft JhengHei", sans-serif;
+            transition: background-color 0.3s;
+            background-color: var(--bg-color); /* 使用變數控制背景 */
+            user-select: none; 
+            -webkit-touch-callout: none;
+        }
+
+        /* 定義全域變數 (預設黑底白線) */
+        :root { 
+            --bg-color: #000000;
+            --main-color: #FFFFFF; 
+            --line-width: 3vmin; 
+        }
+
+        /* --- 2. 遊戲主體容器 --- */
+        #game-scaler {
+            width: 50vmin; height: 50vmin; position: relative;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+        #game-scaler.active { transform: scale(1.8); }
+
+        /* --- 3. 模式一：CSS 線條笑臉 (空心) --- */
+        .css-face {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            display: none;
+        }
+        .css-face.current-face { display: block; }
+
+        .face-circle {
+            width: 100%; height: 100%;
+            border: var(--line-width) solid var(--main-color);
+            border-radius: 50%; position: absolute; box-sizing: border-box;
+        }
+        .eye {
+            width: 15%; height: 15%;
+            background-color: var(--main-color);
+            border-radius: 50%; position: absolute; top: 30%;
+        }
+        .eye.left { left: 25%; }
+        .eye.right { right: 25%; }
+        .mouth {
+            width: 50%; height: 25%;
+            border-radius: 50%; position: absolute; left: 25%; box-sizing: border-box;
+            border-bottom: var(--line-width) solid var(--main-color); 
+            bottom: 20%;
+        }
+
+        /* --- 4. 模式二：SVG 實心笑臉 (替代舊 Emoji) --- */
+        /* SVG 讓顏色控制精準，不會有黃色殘留，也不會消失 */
+        .svg-face {
+            width: 100%; height: 100%; 
+            display: none;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); /* 增加一點立體感 */
+            opacity: 1; transition: opacity 0.2s;
+        }
+        .svg-face.current-face { display: block; }
+        
+        /* SVG 內部的顏色綁定 CSS 變數 */
+        .svg-fill { fill: var(--main-color); }
+        .svg-features { fill: var(--bg-color); } /* 眼睛嘴巴挖空(顯示背景色) */
+
+
+        /* --- 5. 防誤觸設定鍵 (長按) --- */
+        #settings-trigger-area {
+            position: fixed; top: 0; left: 0; width: 80px; height: 80px;
+            z-index: 100; pointer-events: auto;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #settings-btn {
+            font-size: 30px; color: #555; 
+            opacity: 0.5; transition: all 0.2s;
+            position: relative;
+            width: 50px; height: 50px;
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 50%;
+        }
+        .progress-ring {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%; border: 4px solid transparent; border-top-color: #ff3333;
+            display: none; animation: spin 2s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+
+        /* --- 6. 設定介面 --- */
+        #settings-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(10, 10, 10, 0.98);
+            z-index: 101; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: #FFF; pointer-events: auto;
+        }
+        .settings-box {
+            background: #2a2a2a; padding: 20px; border-radius: 15px;
+            width: 90%; max-width: 500px; max-height: 95vh; overflow-y: auto;
+            border: 1px solid #444; display: flex; flex-direction: column; gap: 15px;
+        }
+        .setting-group { border-bottom: 1px solid #444; padding-bottom: 15px; }
+        .setting-label { display: block; margin-bottom: 8px; font-weight: bold; color: #ddd; }
+        input[type=range] { width: 100%; height: 30px; }
+        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .btn-group.modes { grid-template-columns: repeat(2, 1fr); }
+        .option-btn {
+            padding: 10px 5px; border: 2px solid #444; background: #1a1a1a; color: #ccc;
+            border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.85em;
+        }
+        .option-btn.selected { border-color: #fff; background: #444; color: #fff; font-weight: bold; }
+        .dot { width: 15px; height: 15px; border-radius: 50%; margin-bottom: 5px; border: 1px solid #666; display:inline-block; margin-right:5px; vertical-align:middle;}
+        
+        #log-area {
+            width: 100%; height: 100px; background: #000; color: #0f0; 
+            font-family: monospace; font-size: 12px; border: 1px solid #555; padding: 10px;
+            overflow-y: scroll; resize: none; box-sizing: border-box;
+        }
+        .log-controls { display: flex; gap: 10px; margin-top: 5px; }
+        .action-btn { flex: 1; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-copy { background: #28a745; color: #fff; }
+        .btn-clear { background: #dc3545; color: #fff; }
+        .btn-close { background: #007bff; color: #fff; width: 100%; padding: 12px; font-size: 16px; margin-top: 10px;}
+
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="settings-trigger-area">
+        <div id="settings-btn">
+            ⚙️
+            <div class="progress-ring" id="progress-ring"></div>
+        </div>
+    </div>
+
+    <div id="game-scaler">
+        <div class="css-face" id="face-line">
+            <div class="face-circle"></div><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>
+        </div>
+        
+        <svg class="svg-face" id="face-solid" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="48" class="svg-fill" />
+            <circle cx="32" cy="38" r="6" class="svg-features" />
+            <circle cx="68" cy="38" r="6" class="svg-features" />
+            <path d="M 25 60 Q 50 85 75 60" stroke-width="6" stroke-linecap="round" fill="none" class="svg-features" stroke="var(--bg-color)" />
+        </svg>
+    </div>
+
+    <div id="settings-overlay">
+        <div class="settings-box">
+            <h2 style="margin:0 0 10px 0; text-align:center;">教師控制台 (V6.3)</h2>
+            
+            <div class="setting-group">
+                <label class="setting-label">視覺漸除 (線條粗細/強度): <span id="fade-val">100%</span></label>
+                <input type="range" id="fade-slider" min="1" max="50" value="30">
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">圖像整體大小</label>
+                <input type="range" id="size-slider" min="20" max="90" value="50">
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">色彩主題</label>
+                <div class="btn-group">
+                    <div class="option-btn selected" onclick="setTheme('bw')" id="btn-bw"><span class="dot" style="background:#000; border:1px solid #fff;"></span>黑白</div>
+                    <div class="option-btn" onclick="setTheme('br')" id="btn-br"><span class="dot" style="background:#000; border:1px solid #f00;"></span>黑紅</div>
+                    <div class="option-btn" onclick="setTheme('wr')" id="btn-wr"><span class="dot" style="background:#fff; border:1px solid #f00;"></span>白紅</div>
+                    <div class="option-btn" onclick="setTheme('by')" id="btn-by"><span class="dot" style="background:#000; border:1px solid #ff0;"></span>黑黃</div>
+                    <div class="option-btn" onclick="setTheme('bb')" id="btn-bb"><span class="dot" style="background:#000; border:1px solid #06f;"></span>黑藍</div>
+                    <div class="option-btn" onclick="setTheme('bg')" id="btn-bg"><span class="dot" style="background:#000; border:1px solid #0f0;"></span>黑綠</div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">表情模式</label>
+                <div class="btn-group modes">
+                    <div class="option-btn selected" onclick="setMode('line')" id="btn-mode-line">😃 線條(空心)</div>
+                    <div class="option-btn" onclick="setMode('solid')" id="btn-mode-solid">😊 實心(Emoji)</div>
+                </div>
+            </div>
+
+            <div class="setting-group" style="border:none;">
+                <label class="setting-label">互動紀錄 (複製到 IEP)</label>
+                <textarea id="log-area" readonly placeholder="尚未有互動紀錄..."></textarea>
+                <div class="log-controls">
+                    <button class="action-btn btn-copy" onclick="copyLog()">📋 複製數據</button>
+                    <button class="action-btn btn-clear" onclick="clearLog()">🗑️ 清除</button>
+                </div>
+            </div>
+
+            <button class="action-btn btn-close" id="close-settings">關閉並返回遊戲</button>
+        </div>
+    </div>
+
+    <audio id="sound-happy" src="https://www.soundjay.com/human/sounds/laughter-1.mp3"></audio>
+
+    <script>
+        // --- 核心變數 ---
+        const root = document.documentElement;
+        const gameScaler = document.getElementById('game-scaler');
+        const logArea = document.getElementById('log-area');
+        const svgFace = document.getElementById('face-solid');
+        
+        let currentMode = 'line';
+        let currentTheme = 'bw';
+        let isPlaying = false;
+        let animationTimer = null;
+        let sessionLogs = [];
+
+        // --- 1. 防誤觸長按邏輯 ---
+        const settingsTrigger = document.getElementById('settings-trigger-area');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const progressRing = document.getElementById('progress-ring');
+        let pressTimer = null;
+
+        function startPress(e) {
+            e.preventDefault();
+            progressRing.style.display = 'block';
+            pressTimer = setTimeout(() => {
+                openSettings();
+                resetPress();
+            }, 2000);
+        }
+        function endPress() { resetPress(); }
+        function resetPress() {
+            clearTimeout(pressTimer);
+            progressRing.style.display = 'none';
+        }
+        function openSettings() {
+            settingsOverlay.style.display = 'flex';
+            updateLogDisplay();
+        }
+
+        settingsTrigger.addEventListener('mousedown', startPress);
+        settingsTrigger.addEventListener('touchstart', startPress);
+        settingsTrigger.addEventListener('mouseup', endPress);
+        settingsTrigger.addEventListener('mouseleave', endPress);
+        settingsTrigger.addEventListener('touchend', endPress);
+
+
+        // --- 2. 視覺漸除 (控制線條粗細 與 SVG透明度) ---
+        const fadeSlider = document.getElementById('fade-slider');
+        const fadeValDisplay = document.getElementById('fade-val');
+        fadeSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            const max = 50;
+            // CSS 線條粗細
+            const lineWidth = (val / 10).toFixed(1) + 'vmin';
+            root.style.setProperty('--line-width', lineWidth);
+            
+            // SVG 透明度 (最低 0.1)
+            const opacity = Math.max(0.1, val / max);
+            svgFace.style.opacity = opacity;
+            
+            fadeValDisplay.textContent = Math.round((val / max) * 100) + '%';
+        });
+
+        
+        // --- 3. 數據紀錄 ---
+        function addLog() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-HK', { hour12: false });
+            const modeName = currentMode === 'line' ? '線條' : '實心Emoji';
+            const themeName = document.querySelector('.option-btn.selected').innerText.trim();
+            const intensity = fadeSlider.value;
+            const logEntry = `[${timeStr}] 模式:${modeName} | 主題:${themeName} | 強度:${intensity}`;
+            sessionLogs.push(logEntry);
+            if (sessionLogs.length > 50) sessionLogs.shift();
+        }
+        function updateLogDisplay() { logArea.value = sessionLogs.slice().reverse().join('\n'); }
+        function copyLog() { logArea.select(); document.execCommand('copy'); alert('數據已複製！'); }
+        function clearLog() { if(confirm('確定要清除所有紀錄嗎？')) { sessionLogs = []; updateLogDisplay(); } }
+
+
+        // --- 4. 遊戲邏輯與主題控制 ---
+        
+        // 定義簡單明確的主題色彩
+        const themes = {
+            'bw': { bg: '#000000', main: '#FFFFFF' }, // 黑白
+            'br': { bg: '#000000', main: '#FF0000' }, // 黑紅
+            'wr': { bg: '#FFFFFF', main: '#FF0000' }, // 白紅
+            'by': { bg: '#000000', main: '#FFD700' }, // 黑黃
+            'bb': { bg: '#000000', main: '#0066FF' }, // 黑藍
+            'bg': { bg: '#000000', main: '#00FF00' }  // 黑綠
+        };
+
+        function setTheme(key) {
+            currentTheme = key;
+            // 更新按鈕狀態
+            document.querySelectorAll('.btn-group .option-btn').forEach(btn => {
+                if(btn.id.startsWith('btn-b') || btn.id.startsWith('btn-w')) btn.classList.remove('selected');
+            });
+            document.getElementById('btn-' + key).classList.add('selected');
+            
+            // 直接更新 CSS 變數，SVG 會自動吃這些變數
+            const t = themes[key];
+            root.style.setProperty('--bg-color', t.bg);
+            root.style.setProperty('--main-color', t.main);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('[id^="btn-mode-"]').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('btn-mode-' + mode).classList.add('selected');
+            
+            // 切換顯示
+            document.querySelectorAll('.css-face, .svg-face').forEach(el => el.classList.remove('current-face'));
+            document.getElementById('face-' + mode).classList.add('current-face');
+        }
+
+        document.getElementById('size-slider').addEventListener('input', (e) => {
+            gameScaler.style.width = e.target.value + 'vmin';
+            gameScaler.style.height = e.target.value + 'vmin';
+        });
+
+        function triggerFeedback() {
+            if (settingsOverlay.style.display === 'flex') return;
+            if (isPlaying) return;
+
+            isPlaying = true;
+            addLog();
+
+            gameScaler.classList.add('active');
+
+            const sound = document.getElementById('sound-happy');
+            sound.pause(); sound.currentTime = 0;
+            sound.play().catch(e => console.log('Audio Blocked'));
+
+            clearTimeout(animationTimer);
+            animationTimer = setTimeout(() => {
+                gameScaler.classList.remove('active');
+                sound.pause(); sound.currentTime = 0;
+                isPlaying = false;
+            }, 5000);
+        }
+
+        document.getElementById('close-settings').addEventListener('click', () => {
+            settingsOverlay.style.display = 'none';
+        });
+
+        document.body.addEventListener('click', triggerFeedback);
+        document.body.addEventListener('touchstart', (e) => {
+            if (!e.target.closest('.settings-box') && !e.target.closest('#settings-trigger-area')) {
+                e.preventDefault(); 
+                triggerFeedback();
+            }
+        }, { passive: false });
+
+        // 初始化
+        setTheme('bw');
+        setMode('line');
+        fadeSlider.dispatchEvent(new Event('input'));
+
+    </script>
+</body>
+</html>    
