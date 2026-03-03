@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CVI 正向互動訓練 V6.3 (SVG終極版)</title>
+    <title>CVI 正向互動訓練 V6.4 (自訂音效版)</title>
     <style>
         /* --- 1. 基礎設定 --- */
         body, html {
@@ -13,12 +13,11 @@
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             font-family: "Microsoft JhengHei", sans-serif;
             transition: background-color 0.3s;
-            background-color: var(--bg-color); /* 使用變數控制背景 */
+            background-color: var(--bg-color); 
             user-select: none; 
             -webkit-touch-callout: none;
         }
 
-        /* 定義全域變數 (預設黑底白線) */
         :root { 
             --bg-color: #000000;
             --main-color: #FFFFFF; 
@@ -59,19 +58,17 @@
             bottom: 20%;
         }
 
-        /* --- 4. 模式二：SVG 實心笑臉 (替代舊 Emoji) --- */
-        /* SVG 讓顏色控制精準，不會有黃色殘留，也不會消失 */
+        /* --- 4. 模式二：SVG 實心笑臉 --- */
         .svg-face {
             width: 100%; height: 100%; 
             display: none;
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); /* 增加一點立體感 */
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
             opacity: 1; transition: opacity 0.2s;
         }
         .svg-face.current-face { display: block; }
         
-        /* SVG 內部的顏色綁定 CSS 變數 */
         .svg-fill { fill: var(--main-color); }
-        .svg-features { fill: var(--bg-color); } /* 眼睛嘴巴挖空(顯示背景色) */
+        .svg-features { fill: var(--bg-color); } 
 
 
         /* --- 5. 防誤觸設定鍵 (長按) --- */
@@ -158,7 +155,7 @@
 
     <div id="settings-overlay">
         <div class="settings-box">
-            <h2 style="margin:0 0 10px 0; text-align:center;">教師控制台 (V6.3)</h2>
+            <h2 style="margin:0 0 10px 0; text-align:center;">教師控制台 (V6.4)</h2>
             
             <div class="setting-group">
                 <label class="setting-label">視覺漸除 (線條粗細/強度): <span id="fade-val">100%</span></label>
@@ -203,7 +200,7 @@
         </div>
     </div>
 
-    <audio id="sound-happy" src="https://www.soundjay.com/human/sounds/laughter-1.mp3"></audio>
+    <audio id="sound-happy" src="laugh.mp3"></audio>
 
     <script>
         // --- 核心變數 ---
@@ -249,17 +246,15 @@
         settingsTrigger.addEventListener('touchend', endPress);
 
 
-        // --- 2. 視覺漸除 (控制線條粗細 與 SVG透明度) ---
+        // --- 2. 視覺漸除 ---
         const fadeSlider = document.getElementById('fade-slider');
         const fadeValDisplay = document.getElementById('fade-val');
         fadeSlider.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             const max = 50;
-            // CSS 線條粗細
             const lineWidth = (val / 10).toFixed(1) + 'vmin';
             root.style.setProperty('--line-width', lineWidth);
             
-            // SVG 透明度 (最低 0.1)
             const opacity = Math.max(0.1, val / max);
             svgFace.style.opacity = opacity;
             
@@ -284,26 +279,22 @@
 
 
         // --- 4. 遊戲邏輯與主題控制 ---
-        
-        // 定義簡單明確的主題色彩
         const themes = {
-            'bw': { bg: '#000000', main: '#FFFFFF' }, // 黑白
-            'br': { bg: '#000000', main: '#FF0000' }, // 黑紅
-            'wr': { bg: '#FFFFFF', main: '#FF0000' }, // 白紅
-            'by': { bg: '#000000', main: '#FFD700' }, // 黑黃
-            'bb': { bg: '#000000', main: '#0066FF' }, // 黑藍
-            'bg': { bg: '#000000', main: '#00FF00' }  // 黑綠
+            'bw': { bg: '#000000', main: '#FFFFFF' }, 
+            'br': { bg: '#000000', main: '#FF0000' }, 
+            'wr': { bg: '#FFFFFF', main: '#FF0000' }, 
+            'by': { bg: '#000000', main: '#FFD700' }, 
+            'bb': { bg: '#000000', main: '#0066FF' }, 
+            'bg': { bg: '#000000', main: '#00FF00' }  
         };
 
         function setTheme(key) {
             currentTheme = key;
-            // 更新按鈕狀態
             document.querySelectorAll('.btn-group .option-btn').forEach(btn => {
                 if(btn.id.startsWith('btn-b') || btn.id.startsWith('btn-w')) btn.classList.remove('selected');
             });
             document.getElementById('btn-' + key).classList.add('selected');
             
-            // 直接更新 CSS 變數，SVG 會自動吃這些變數
             const t = themes[key];
             root.style.setProperty('--bg-color', t.bg);
             root.style.setProperty('--main-color', t.main);
@@ -314,7 +305,6 @@
             document.querySelectorAll('[id^="btn-mode-"]').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('btn-mode-' + mode).classList.add('selected');
             
-            // 切換顯示
             document.querySelectorAll('.css-face, .svg-face').forEach(el => el.classList.remove('current-face'));
             document.getElementById('face-' + mode).classList.add('current-face');
         }
@@ -357,11 +347,10 @@
             }
         }, { passive: false });
 
-        // 初始化
         setTheme('bw');
         setMode('line');
         fadeSlider.dispatchEvent(new Event('input'));
 
     </script>
 </body>
-</html>    
+</html>
